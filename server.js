@@ -68,13 +68,13 @@ app.all('/capture', (req, res) => {
 
     // OAuth / OIDC параметры (секреты маскируются для безопасности в отчёте)
     oauth: {
-      code:              raw_code         ? maskSecret(raw_code)         : null,
-      state:             raw_state        || null,
-      session_state:     raw_session_state|| null,
-      access_token:      raw_access_token ? maskSecret(raw_access_token) : null,
-      id_token:          raw_id_token     ? maskSecret(raw_id_token)     : null,
-      error:             raw_error        || null,
-      error_description: raw_error_desc   || null,
+      code:              raw_code          || null,
+      state:             raw_state         || null,
+      session_state:     raw_session_state || null,
+      access_token:      raw_access_token  || null,
+      id_token:          raw_id_token      || null,
+      error:             raw_error         || null,
+      error_description: raw_error_desc    || null,
     },
 
     // Полные сырые параметры для исследования
