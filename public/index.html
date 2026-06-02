@@ -420,12 +420,11 @@ function App() {
       {/* ── Верхняя карточка ── */}
       <section className="shell">
         <header className="hero">
-          <h1>Сервер наблюдения — подмена <code>redirect_uri</code></h1>
+          <h1>Подконтролььный сервер</h1>
           <p>
-            Вставьте GET-запрос из DevTools (строку вида&nbsp;
-            <code>GET http://...?client_id=...&amp;redirect_uri=...&amp;scope=...</code>),
+            Вставьте GET-запрос из DevTools ,
             нажмите <strong>«Разобрать»</strong> — параметры появятся в таблице,
-            а <code>redirect_uri</code> будет автоматически подменён на адрес <code>/capture</code>.
+            а <code>redirect_uri</code> будет автоматически подменён.
             Отредактируйте любые параметры вручную и нажмите <strong>«Отправить»</strong>.
           </p>
         </header>
@@ -435,7 +434,7 @@ function App() {
         {/* ── Шаг 1: вставка ── */}
         <div className="field">
           <label>
-            Шаг 1 — Вставьте GET-запрос из DevTools
+            Шаг 1 — Вставьте GET-запрос
             <span className="hint"> (можно целиком со строкой «GET http://...» или просто URL)</span>
           </label>
           <textarea
@@ -443,7 +442,7 @@ function App() {
             value={rawInput}
             onChange={e => setRawInput(e.target.value)}
             spellCheck={false}
-            placeholder={"GET http://10.0.2.15:8080/realms/test-realm/protocol/openid-connect/auth?client_id=client_id&redirect_uri=http%3A%2F%2F10.0.2.15%3A3000&response_type=id_token+token&scope=openid+profile+email&nonce=abc123 HTTP/1.1\n\n— или просто URL без «GET» и «HTTP/1.1»"}
+            placeholder={"GET http://10.0.2.15:8080/realms/test-realm/protocol/openid-connect/auth?client_id=client_id&redirect_uri=http%3A%2F%2F10.0.2.15%3A3000&response_type=id_token+token&scope=openid+profile+email&nonce=abc123"}
           />
           {parseError && (
             <div style={{color:'var(--danger)',fontSize:'.9rem',marginTop:6,fontWeight:600}}>
@@ -454,15 +453,15 @@ function App() {
 
         <div className="field">
           <label>
-            Адрес подмены <code>redirect_uri</code>
-            <span className="hint"> — куда сервер авторизации перенаправит с кодом</span>
+            <code>redirect_uri</code>
+            <span className="hint"> — куда сервер аутентификации перенаправит с кодом</span>
           </label>
           <input type="text" value={captureUri} onChange={e => setCaptureUri(e.target.value)} />
         </div>
 
         <div className="btns">
           <button className="btn-danger" onClick={handleParse}>
-            Разобрать и подменить redirect_uri
+            Подменить redirect_uri
           </button>
           <button className="btn-neutral btn-sm" onClick={handleReset}>Сбросить</button>
         </div>
@@ -544,13 +543,13 @@ function App() {
           </div>
         </>)}
 
-        {/* ── Шаг 3: финальный URL ── */}
+        {/* ── Шаг 3: Сформированный URL ── */}
         {finalUrl && (<>
           <hr className="divider"/>
           <div className="field">
             <label style={{fontSize:'1.05rem'}}>
-              Шаг 3 — Финальный GET-запрос
-              <span className="hint"> — можно редактировать напрямую</span>
+              Шаг 3 — Сформированный GET-запрос
+              <span className="hint"> — можно редактировать </span>
             </label>
             <textarea
               className="final-url"
@@ -561,7 +560,7 @@ function App() {
           </div>
           <div className="btns">
             <button className="btn-success" onClick={handleSend}>
-              ▶ Отправить запрос (открыть в браузере)
+              ▶ Отправить запрос
             </button>
             <button className="btn-neutral" onClick={handleCopy}>{copyLabel}</button>
           </div>
@@ -572,7 +571,7 @@ function App() {
           <h2>Ответ /capture</h2>
           <pre>{JSON.stringify(responseBlock, null, 2)}</pre>
           <div className="note">
-            NOTE: если сервер авторизации не валидирует <code>redirect_uri</code>,
+            NOTE: если сервер авторизации не проверяет<code>redirect_uri</code>,
             он перенаправит <code>code</code>&nbsp;/ токены на <code>/capture</code> —
             событие появится в журнале ниже автоматически.
           </div>
@@ -611,7 +610,7 @@ function App() {
             <tbody>
               {log.length === 0 ? (
                 <tr><td colSpan="6" style={{textAlign:'center',color:'var(--muted)',padding:'24px'}}>
-                  Журнал пуст. Отправьте запрос и завершите OAuth-поток.
+                  Журнал пуст.
                 </td></tr>
               ) : log.map(item => (
                 <tr key={item.id}>
