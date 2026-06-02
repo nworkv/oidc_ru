@@ -1,7 +1,7 @@
 {
   "name": "oidc-observer-server",
   "version": "1.0.0",
-  "description": "Исследовательский сервер для изучения уязвимости redirect_uri в OpenID Connect",
+  "description": "Исследовательский сервер наблюдения за redirect_uri (OpenID Connect / OAuth 2.0)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,7 +10,8 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
